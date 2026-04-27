@@ -8,6 +8,7 @@ use App\Exceptions\InvalidAffiliateOperationException;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Affiliate;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class AffiliateService
 {
@@ -56,17 +57,19 @@ class AffiliateService
 
     public function addDependent(Affiliate $holder, array $dependentData): Affiliate
     {
-        if (!$holder->isHolder()) {
-            throw new InvalidAffiliateOperationException('Only holders can have dependents');
-        }
+        return DB::transaction(function () use ($holder, $dependentData) {
+            if (!$holder->isHolder()) {
+                throw new InvalidAffiliateOperationException('Only holders can have dependents');
+            }
 
-        $dependentData['holder_id'] = $holder->id;
-        $dependentData['plan_id'] = $holder->plan_id;
-        $dependentData['status'] = AffiliateStatus::PENDING->value;
+            $dependentData['holder_id'] = $holder->id;
+            $dependentData['plan_id'] = $holder->plan_id;
+            $dependentData['status'] = AffiliateStatus::PENDING->value;
 
-        $dependent = $this->create($dependentData);
+            $dependent = $this->create($dependentData);
 
-        return $dependent;
+            return $dependent;
+        });
     }
 
     public function removeDependent(Affiliate $dependent): void

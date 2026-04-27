@@ -21,7 +21,18 @@ class StoreAffiliateRequest extends FormRequest
             'dni' => 'required|string|unique:affiliates,dni',
             'status' => ['nullable', Rule::enum(AffiliateStatus::class)],
             'plan_id' => 'required|exists:plans,id',
-            'holder_id' => 'nullable|exists:affiliates,id',
+            'holder_id' => [
+                'nullable',
+                'exists:affiliates,id',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->input('dni')) {
+                        $existingAffiliate = \App\Models\Affiliate::where('dni', $this->input('dni'))->first();
+                        if ($existingAffiliate && $existingAffiliate->id == $value) {
+                            $fail('An affiliate cannot be their own holder.');
+                        }
+                    }
+                },
+            ],
         ];
     }
 
