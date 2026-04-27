@@ -1,24 +1,54 @@
 # Healthcare Affiliate API
 
+[![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat&logo=php&logoColor=white)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=flat&logo=laravel&logoColor=white)](https://laravel.com)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![API](https://img.shields.io/badge/API-REST-009688?style=flat)](https://en.wikipedia.org/wiki/Representational_state_transfer)
+
 Professional REST API for healthcare affiliate management system built with Laravel 11.
 
-## Features
+## Highlights
 
-- **Affiliate Management**: Full CRUD operations for healthcare affiliates
-- **Family Groups**: Support for holders and dependents with hierarchical relationships
-- **Plan Management**: Create and manage healthcare coverage plans
-- **Real-time Coverage Validation**: Validate medical service coverage instantly
-- **Audit Logging**: Automatic tracking of all critical entity changes
-- **Authentication**: Token-based authentication using Laravel Sanctum
-- **API Versioning**: Versioned endpoints (`/api/v1/`)
-- **Clean Architecture**: Services layer for business logic separation
+- **Family Group Management**: Hierarchical holder-dependent relationships with automatic validation
+- **Real-time Coverage Validation**: Instant medical service coverage checks
+- **Event-Driven Audit Trail**: Automatic logging of all critical entity changes
+- **Clean Architecture**: Service layer with separated business logic
+- **Type-Safe Status Management**: PHP Enums for affiliate states
+- **API Versioning**: Structured `/api/v1/` endpoints from day one
+
+## Architecture
+
+```
+┌─────────────────┐
+│   API Layer     │ ← Controllers (thin, orchestration only)
+├─────────────────┤
+│  Service Layer  │ ← Business logic (AffiliateService, CoverageService)
+├─────────────────┤
+│   Domain Layer  │ ← Models, Enums, Events, Listeners
+├─────────────────┤
+│  Data Layer     │ ← Migrations, Seeders, Factories
+└─────────────────┘
+```
+
+### Design Decisions
+
+- **Service Layer Pattern**: Controllers delegate to services for testability and reusability
+- **Event-Driven Audit**: `AffiliateUpdated` event triggers `LogAudit` listener for non-intrusive logging
+- **API Resources**: Transform models with consistent response format and conditional relationships
+- **Form Requests**: Centralized validation with custom messages and authorization
+- **Soft Deletes**: Critical entities (Affiliates, Plans) preserve data integrity
+- **Enum-Based Status**: `AffiliateStatus` enum prevents invalid states at compile time
 
 ## Tech Stack
 
-- **PHP**: 8.2+
-- **Laravel**: 11.x
-- **Laravel Sanctum**: 4.x (Authentication)
-- **Database**: MySQL/PostgreSQL/SQLite
+| Component | Technology |
+|-----------|------------|
+| Runtime | PHP 8.2+ |
+| Framework | Laravel 11.x |
+| Authentication | Laravel Sanctum 4.x |
+| Database | MySQL / PostgreSQL / SQLite |
+| Testing | PHPUnit 11.x |
+| Code Style | Laravel Pint |
 
 ## Installation
 
@@ -77,81 +107,65 @@ The API will be available at `http://localhost:8000`
 ## API Endpoints
 
 ### Authentication
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/v1/auth/register` | Register new user | No |
-| POST | `/api/v1/auth/login` | Login user | No |
-| POST | `/api/v1/auth/logout` | Logout user | Yes |
-| GET | `/api/v1/auth/me` | Get current user | Yes |
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/api/v1/auth/register` | No |
+| POST | `/api/v1/auth/login` | No |
+| POST | `/api/v1/auth/logout` | Yes |
+| GET | `/api/v1/auth/me` | Yes |
 
 ### Affiliates
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/api/v1/affiliates` | List all affiliates | Yes |
-| POST | `/api/v1/affiliates` | Create new affiliate | Yes |
-| GET | `/api/v1/affiliates/{id}` | Get affiliate details | Yes |
-| PUT/PATCH | `/api/v1/affiliates/{id}` | Update affiliate | Yes |
-| DELETE | `/api/v1/affiliates/{id}` | Delete affiliate | Yes |
-| POST | `/api/v1/affiliates/{id}/status` | Change affiliate status | Yes |
-| GET | `/api/v1/affiliates/{id}/status` | Get affiliate status | Yes |
-| POST | `/api/v1/affiliates/{id}/dependents` | Add dependent to holder | Yes |
-| GET | `/api/v1/affiliates/{id}/family-group` | Get family group | Yes |
-| DELETE | `/api/v1/affiliates/{id}/dependents/{dependent}` | Remove dependent | Yes |
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/api/v1/affiliates` | Yes |
+| POST | `/api/v1/affiliates` | Yes |
+| GET | `/api/v1/affiliates/{id}` | Yes |
+| PUT/PATCH | `/api/v1/affiliates/{id}` | Yes |
+| DELETE | `/api/v1/affiliates/{id}` | Yes |
+| POST | `/api/v1/affiliates/{id}/status` | Yes |
+| GET | `/api/v1/affiliates/{id}/family-group` | Yes |
+| POST | `/api/v1/affiliates/{id}/dependents` | Yes |
+| DELETE | `/api/v1/affiliates/{id}/dependents/{dependent}` | Yes |
 
 ### Plans
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | `/api/v1/plans` | List all plans | Yes |
-| POST | `/api/v1/plans` | Create new plan | Yes |
-| GET | `/api/v1/plans/{id}` | Get plan details | Yes |
-| PUT/PATCH | `/api/v1/plans/{id}` | Update plan | Yes |
-| DELETE | `/api/v1/plans/{id}` | Delete plan | Yes |
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/api/v1/plans` | Yes |
+| POST | `/api/v1/plans` | Yes |
+| GET | `/api/v1/plans/{id}` | Yes |
+| PUT/PATCH | `/api/v1/plans/{id}` | Yes |
+| DELETE | `/api/v1/plans/{id}` | Yes |
 
 ### Coverage
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/api/v1/coverage/validate` | Yes |
+| GET | `/api/v1/coverage/affiliate/{id}` | Yes |
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/v1/coverage/validate` | Validate service coverage | Yes |
-| GET | `/api/v1/coverage/affiliate/{id}` | Get affiliate coverage details | Yes |
-
-## Affiliate Statuses
-
-- `pending`: Affiliate is pending activation
-- `active`: Affiliate is active and can validate coverage
-- `suspended`: Affiliate is temporarily suspended
-- `inactive`: Affiliate is inactive
+### Affiliate Statuses
+- `pending` - Pending activation
+- `active` - Can validate coverage
+- `suspended` - Temporarily suspended
+- `inactive` - Inactive
 
 ## Usage Examples
 
 ### Authentication
-
-#### Register
 ```bash
+# Register
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "John Doe",
-    "email": "john@example.com",
-    "password": "password123"
-  }'
-```
+  -d '{"name":"John Doe","email":"john@example.com","password":"password123"}'
 
-#### Login
-```bash
+# Login (returns token)
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "password123"
-  }'
+  -d '{"email":"john@example.com","password":"password123"}'
 ```
 
-Use the returned `token` in the `Authorization` header for authenticated requests:
+Use the returned token in the `Authorization` header:
 ```bash
-Authorization: Bearer {token}
+-H "Authorization: Bearer {token}"
 ```
 
 ### Create Affiliate
@@ -159,13 +173,7 @@ Authorization: Bearer {token}
 curl -X POST http://localhost:8000/api/v1/affiliates \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {token}" \
-  -d '{
-    "first_name": "Juan",
-    "last_name": "García",
-    "dni": "12345678",
-    "plan_id": 1,
-    "status": "active"
-  }'
+  -d '{"first_name":"Juan","last_name":"García","dni":"12345678","plan_id":1,"status":"active"}'
 ```
 
 ### Validate Coverage
@@ -173,10 +181,7 @@ curl -X POST http://localhost:8000/api/v1/affiliates \
 curl -X POST http://localhost:8000/api/v1/coverage/validate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {token}" \
-  -d '{
-    "affiliate_id": 1,
-    "service_code": "CONSULT"
-  }'
+  -d '{"affiliate_id":1,"service_code":"CONSULT"}'
 ```
 
 ### Add Dependent
@@ -184,11 +189,7 @@ curl -X POST http://localhost:8000/api/v1/coverage/validate \
 curl -X POST http://localhost:8000/api/v1/affiliates/1/dependents \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {token}" \
-  -d '{
-    "first_name": "Ana",
-    "last_name": "García",
-    "dni": "12345679"
-  }'
+  -d '{"first_name":"Ana","last_name":"García","dni":"12345679"}'
 ```
 
 ## Project Structure
@@ -196,88 +197,51 @@ curl -X POST http://localhost:8000/api/v1/affiliates/1/dependents \
 ```
 app/
 ├── Enums/
-│   └── AffiliateStatus.php          # Affiliate status enum
+│   └── AffiliateStatus.php
 ├── Events/
-│   └── AffiliateUpdated.php          # Event for affiliate changes
+│   └── AffiliateUpdated.php
 ├── Http/
 │   ├── Controllers/Api/V1/
-│   │   ├── AffiliateController.php  # Affiliate endpoints
-│   │   ├── PlanController.php       # Plan endpoints
-│   │   ├── CoverageController.php   # Coverage validation
-│   │   └── AuthController.php       # Authentication
+│   │   ├── AffiliateController.php
+│   │   ├── PlanController.php
+│   │   ├── CoverageController.php
+│   │   └── AuthController.php
 │   ├── Requests/
-│   │   ├── Affiliate/               # Affiliate validation
-│   │   ├── Plan/                    # Plan validation
+│   │   ├── Affiliate/
+│   │   ├── Plan/
 │   │   └── ValidateCoverageRequest.php
 │   └── Resources/
-│       ├── AffiliateResource.php   # Affiliate response transformer
-│       ├── PlanResource.php        # Plan response transformer
-│       └── AuditLogResource.php    # Audit log transformer
+│       ├── AffiliateResource.php
+│       ├── PlanResource.php
+│       ├── AuditLogResource.php
+│       └── FamilyGroupResource.php
 ├── Listeners/
-│   └── LogAudit.php                # Audit logging listener
+│   └── LogAudit.php
 ├── Models/
-│   ├── Affiliate.php                # Affiliate model
-│   ├── Plan.php                    # Plan model
-│   ├── AuditLog.php                # Audit log model
-│   └── User.php                    # User model
+│   ├── Affiliate.php
+│   ├── Plan.php
+│   ├── AuditLog.php
+│   └── User.php
 └── Services/
-    ├── AffiliateService.php        # Affiliate business logic
-    └── CoverageService.php         # Coverage validation logic
+    ├── AffiliateService.php
+    └── CoverageService.php
 
 database/
-├── factories/                      # Model factories
-├── migrations/                      # Database migrations
-└── seeders/                         # Database seeders
+├── factories/
+├── migrations/
+└── seeders/
 
 routes/
-├── api.php                         # API routes
-└── web.php                         # Web routes
+├── api.php
+└── web.php
 ```
-
-## Architecture Patterns
-
-### Service Layer
-Business logic is encapsulated in Services to keep Controllers lean:
-- `AffiliateService`: Handles affiliate operations and family group management
-- `CoverageService`: Handles coverage validation logic
-
-### Event-Driven Architecture
-Critical changes trigger events for side effects:
-- `AffiliateUpdated` event fires on create/update/delete
-- `LogAudit` listener automatically logs changes to `audit_logs` table
-
-### Request Validation
-Form Requests handle validation:
-- Centralized validation rules
-- Custom error messages
-- Authorization checks
-
-### API Resources
-Resources transform models into API responses:
-- Consistent response format
-- Conditional relationship loading
-- Data transformation
-
-## Best Practices Applied
-
-1. **Clean Architecture**: Separation of concerns with Services layer
-2. **Soft Deletes**: Critical entities use soft deletes
-3. **Audit Trail**: Automatic logging of all changes
-4. **API Versioning**: Versioned endpoints from the start
-5. **Enum Usage**: Type-safe status management
-6. **Relationship Management**: Well-defined Eloquent relationships
-7. **Validation**: Request-level validation with custom messages
-8. **Error Handling**: Proper HTTP status codes and error responses
-9. **Pagination**: Consistent pagination for list endpoints
-10. **Authentication**: Token-based auth with Sanctum
 
 ## Testing
 
-Run the test suite:
 ```bash
 php artisan test
 ```
 
 ## License
 
-This project is licensed under the MIT License.
+MIT License - see [LICENSE](LICENSE) for details.
