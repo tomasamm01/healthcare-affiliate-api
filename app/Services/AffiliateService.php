@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\AffiliateStatus;
+use App\Events\AffiliateUpdated;
+use App\Models\Affiliate;
+use Illuminate\Database\Eloquent\Collection;
+
+class AffiliateService
+{
+    public function create(array $data): Affiliate
+    {
+        $affiliate = Affiliate::create($data);
+
+        event(new AffiliateUpdated($affiliate, 'created', []));
+
+        return $affiliate->load('plan');
+    }
+
+    public function update(Affiliate $affiliate, array $data): Affiliate
+    {
+        $old = $affiliate->getOriginal();
+
+        $affiliate->update($data);
+
+        event(new AffiliateUpdated($affiliate, 'updated', $old));
+
+        return $affiliate->load('plan');
+    }
+
+    public function changeStatus(Affiliate $affiliate, AffiliateStatus|string $status): Affiliate
+    {
+        if (is_string($status)) {
+            $status = AffiliateStatus::from($status);
+        }
+
+        $old = $affiliate->getOriginal();
+
+        $affiliate->update(['status' => $status->value]);
+
+        event(new AffiliateUpdated($affiliate, 'status_changed', $old));
+
+        return $affiliate->load('plan');
+    }
+
+    public function addDependent(Affiliate $holder, array $dependentData): Affiliate
+    {
+        if (!$holder->isHolder()) {
+            throw new \InvalidArgumentException('Only holders can have dependents');
+        }
+
+        $dependentData['holder_id'] = $holder->id;
+        $dependentData['plan_id'] = $holder->plan_id;
+        $dependentData['status'] = AffiliateStatus::PENDING->value;
+
+        $dependent = $this->create($dependentData);
+
+        return $dependent;
+    }
+
+    public function removeDependent(Affiliate $dependent): void
+    {
+        if ($dependent->isHolder()) {
+            throw new \InvalidArgumentException('Cannot remove a holder as a dependent');
+        }
+
+        $old = $dependent->getOriginal();
+
+        $dependent->delete();
+
+        event(new AffiliateUpdated($dependent, 'deleted', $old));
+    }
+
+    public function getFamilyGroup(Affiliate $holder): Collection
+    {
+        if (!$holder->isHolder()) {
+            throw new \InvalidArgumentException('Only holders have family groups');
+        }
+
+        return Affiliate::where('holder_id', $holder->id)
+            ->orWhere('id', $holder->id)
+            ->with('plan')
+            ->get();
+    }
+}
