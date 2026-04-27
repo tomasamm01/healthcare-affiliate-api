@@ -74,15 +74,17 @@ class AffiliateService
 
     public function removeDependent(Affiliate $dependent): void
     {
-        if ($dependent->isHolder()) {
-            throw new InvalidAffiliateOperationException('Cannot remove a holder as a dependent');
-        }
+        DB::transaction(function () use ($dependent) {
+            if ($dependent->isHolder()) {
+                throw new InvalidAffiliateOperationException('Cannot remove a holder as a dependent');
+            }
 
-        $old = $dependent->getOriginal();
+            $old = $dependent->getOriginal();
 
-        $dependent->delete();
+            $dependent->delete();
 
-        event(new AffiliateUpdated($dependent, 'deleted', $old));
+            event(new AffiliateUpdated($dependent, 'deleted', $old));
+        });
     }
 
     public function getFamilyGroup(Affiliate $holder): Collection
