@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\Logger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Affiliate\AddDependentRequest;
 use App\Http\Requests\Affiliate\ChangeStatusRequest;
@@ -69,6 +70,12 @@ class AffiliateController extends Controller
     {
         $affiliate = $this->service->create($request->validated());
 
+        Logger::affiliate('created', [
+            'affiliate_id' => $affiliate->id,
+            'dni' => $affiliate->dni,
+            'user_id' => $request->user()->id,
+        ]);
+
         return (new AffiliateResource($affiliate))
             ->response()
             ->setStatusCode(201);
@@ -86,13 +93,26 @@ class AffiliateController extends Controller
     {
         $affiliate = $this->service->update($affiliate, $request->validated());
 
+        Logger::affiliate('updated', [
+            'affiliate_id' => $affiliate->id,
+            'dni' => $affiliate->dni,
+            'user_id' => $request->user()->id,
+        ]);
+
         return (new AffiliateResource($affiliate))
             ->response();
     }
 
     public function destroy(Affiliate $affiliate): JsonResponse
     {
+        $affiliateId = $affiliate->id;
+        $dni = $affiliate->dni;
         $affiliate->delete();
+
+        Logger::affiliate('deleted', [
+            'affiliate_id' => $affiliateId,
+            'dni' => $dni,
+        ]);
 
         return response()->json(null, 204);
     }

@@ -23,19 +23,30 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
 
-        // Affiliates
-        Route::apiResource('affiliates', AffiliateController::class);
+        // Affiliates - Admin/Operator only for write operations
+        Route::apiResource('affiliates', AffiliateController::class)->except(['index', 'show']);
+        Route::middleware('role:admin,operator,viewer')->group(function () {
+            Route::get('affiliates', [AffiliateController::class, 'index']);
+            Route::get('affiliates/{affiliate}', [AffiliateController::class, 'show']);
+        });
         
-        Route::post('affiliates/{affiliate}/status', [AffiliateController::class, 'changeStatus']);
+        Route::middleware('role:admin,operator')->group(function () {
+            Route::post('affiliates/{affiliate}/status', [AffiliateController::class, 'changeStatus']);
+            Route::post('affiliates/{affiliate}/dependents', [AffiliateController::class, 'addDependent']);
+            Route::delete('affiliates/{affiliate}/dependents/{dependent}', [AffiliateController::class, 'removeDependent']);
+        });
+
         Route::get('affiliates/{affiliate}/status', [AffiliateController::class, 'getStatus']);
-        Route::post('affiliates/{affiliate}/dependents', [AffiliateController::class, 'addDependent']);
         Route::get('affiliates/{affiliate}/family-group', [AffiliateController::class, 'getFamilyGroup']);
-        Route::delete('affiliates/{affiliate}/dependents/{dependent}', [AffiliateController::class, 'removeDependent']);
 
-        // Plans
-        Route::apiResource('plans', PlanController::class);
+        // Plans - Admin only for write operations
+        Route::apiResource('plans', PlanController::class)->except(['index', 'show']);
+        Route::middleware('role:admin,operator,viewer')->group(function () {
+            Route::get('plans', [PlanController::class, 'index']);
+            Route::get('plans/{plan}', [PlanController::class, 'show']);
+        });
 
-        // Coverage
+        // Coverage - All authenticated users
         Route::post('coverage/validate', [CoverageController::class, 'validate']);
         Route::get('coverage/affiliate/{affiliateId}', [CoverageController::class, 'getAffiliateCoverage']);
     });

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\Logger;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ValidateCoverageRequest;
 use App\Services\CoverageService;
@@ -19,6 +20,12 @@ class CoverageController extends Controller
             $request->affiliate_id,
             $request->service_code
         );
+
+        Logger::coverage('validated', [
+            'affiliate_id' => $request->affiliate_id,
+            'service_code' => $request->service_code,
+            'valid' => $result['valid'],
+        ]);
 
         return response()->json($result);
     }

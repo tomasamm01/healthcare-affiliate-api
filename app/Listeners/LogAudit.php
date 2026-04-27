@@ -4,9 +4,10 @@ namespace App\Listeners;
 
 use App\Events\AffiliateUpdated;
 use App\Models\AuditLog;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Auth;
 
-class LogAudit
+class LogAudit implements ShouldQueue
 {
     public function handle(AffiliateUpdated $event): void
     {

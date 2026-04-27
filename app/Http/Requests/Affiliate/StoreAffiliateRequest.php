@@ -24,14 +24,7 @@ class StoreAffiliateRequest extends FormRequest
             'holder_id' => [
                 'nullable',
                 'exists:affiliates,id',
-                function ($attribute, $value, $fail) {
-                    if ($value && $this->input('dni')) {
-                        $existingAffiliate = \App\Models\Affiliate::where('dni', $this->input('dni'))->first();
-                        if ($existingAffiliate && $existingAffiliate->id == $value) {
-                            $fail('An affiliate cannot be their own holder.');
-                        }
-                    }
-                },
+                'different:plan_id',
             ],
         ];
     }

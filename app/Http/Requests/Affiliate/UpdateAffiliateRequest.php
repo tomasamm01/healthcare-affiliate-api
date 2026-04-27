@@ -21,7 +21,15 @@ class UpdateAffiliateRequest extends FormRequest
             'dni' => ['sometimes', 'required', 'string', Rule::unique('affiliates', 'dni')->ignore($this->affiliate)],
             'status' => ['nullable', Rule::enum(AffiliateStatus::class)],
             'plan_id' => 'sometimes|required|exists:plans,id',
-            'holder_id' => 'nullable|exists:affiliates,id',
+            'holder_id' => [
+                'nullable',
+                'exists:affiliates,id',
+                function ($attribute, $value, $fail) {
+                    if ($value && $value == $this->affiliate->id) {
+                        $fail('An affiliate cannot be their own holder.');
+                    }
+                },
+            ],
         ];
     }
 }
