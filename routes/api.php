@@ -3,11 +3,15 @@
 use App\Http\Controllers\Api\V1\AffiliateController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CoverageController;
+use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\PlanController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+    // Health check (public)
+    Route::get('health', [HealthController::class, 'check']);
+
     // Authentication (public)
     Route::middleware('throttle:5,1')->group(function () {
         Route::post('auth/register', [AuthController::class, 'register']);

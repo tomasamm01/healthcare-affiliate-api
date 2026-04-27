@@ -9,33 +9,42 @@ use App\Http\Resources\PlanResource;
 use App\Models\Plan;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PlanController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Plan::withCount('affiliates');
+        $cacheKey = 'plans:' . md5(json_encode($request->only(['active_only', 'per_page'])));
 
-        if ($request->has('active_only')) {
-            $query->active();
-        }
+        $result = Cache::remember($cacheKey, now()->addHours(24), function () use ($request) {
+            $query = Plan::withCount('affiliates');
 
-        $plans = $query->paginate($request->per_page ?? 15);
+            if ($request->has('active_only')) {
+                $query->active();
+            }
 
-        return response()->json([
-            'data' => PlanResource::collection($plans),
-            'meta' => [
-                'current_page' => $plans->currentPage(),
-                'per_page' => $plans->perPage(),
-                'total' => $plans->total(),
-                'last_page' => $plans->lastPage(),
-            ],
-        ]);
+            $plans = $query->paginate($request->per_page ?? 15);
+
+            return [
+                'data' => PlanResource::collection($plans),
+                'meta' => [
+                    'current_page' => $plans->currentPage(),
+                    'per_page' => $plans->perPage(),
+                    'total' => $plans->total(),
+                    'last_page' => $plans->lastPage(),
+                ],
+            ];
+        });
+
+        return response()->json($result);
     }
 
     public function store(StorePlanRequest $request): JsonResponse
     {
         $plan = Plan::create($request->validated());
+
+        Cache::forget('plans:*');
 
         return (new PlanResource($plan))
             ->response()
@@ -54,6 +63,8 @@ class PlanController extends Controller
     {
         $plan->update($request->validated());
 
+        Cache::forget('plans:*');
+
         return (new PlanResource($plan))
             ->response();
     }
@@ -67,6 +78,8 @@ class PlanController extends Controller
         }
 
         $plan->delete();
+
+        Cache::forget('plans:*');
 
         return response()->json(null, 204);
     }

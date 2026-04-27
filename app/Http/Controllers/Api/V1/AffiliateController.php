@@ -13,6 +13,7 @@ use App\Models\Affiliate;
 use App\Services\AffiliateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AffiliateController extends Controller
 {
@@ -36,6 +37,21 @@ class AffiliateController extends Controller
             $query->holders();
         }
 
+        // Use cursor pagination for large datasets
+        if ($request->has('cursor')) {
+            $affiliates = $query->cursorPaginate($request->per_page ?? 15);
+
+            return response()->json([
+                'data' => AffiliateResource::collection($affiliates),
+                'meta' => [
+                    'next_cursor' => $affiliates->nextCursor()?->encode(),
+                    'prev_cursor' => $affiliates->previousCursor()?->encode(),
+                    'per_page' => $affiliates->perPage(),
+                ],
+            ]);
+        }
+
+        // Fallback to standard pagination
         $affiliates = $query->paginate($request->per_page ?? 15);
 
         return response()->json([
