@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\AffiliateStatus;
 use App\Events\AffiliateUpdated;
+use App\Exceptions\InvalidAffiliateOperationException;
+use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Affiliate;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -35,6 +37,14 @@ class AffiliateService
             $status = AffiliateStatus::from($status);
         }
 
+        if (!$affiliate->status->canTransitionTo($status)) {
+            throw new InvalidStatusTransitionException(
+                $affiliate->status->value,
+                $status->value,
+                'Invalid status transition for this affiliate'
+            );
+        }
+
         $old = $affiliate->getOriginal();
 
         $affiliate->update(['status' => $status->value]);
@@ -47,7 +57,7 @@ class AffiliateService
     public function addDependent(Affiliate $holder, array $dependentData): Affiliate
     {
         if (!$holder->isHolder()) {
-            throw new \InvalidArgumentException('Only holders can have dependents');
+            throw new InvalidAffiliateOperationException('Only holders can have dependents');
         }
 
         $dependentData['holder_id'] = $holder->id;
@@ -62,7 +72,7 @@ class AffiliateService
     public function removeDependent(Affiliate $dependent): void
     {
         if ($dependent->isHolder()) {
-            throw new \InvalidArgumentException('Cannot remove a holder as a dependent');
+            throw new InvalidAffiliateOperationException('Cannot remove a holder as a dependent');
         }
 
         $old = $dependent->getOriginal();
@@ -75,7 +85,7 @@ class AffiliateService
     public function getFamilyGroup(Affiliate $holder): Collection
     {
         if (!$holder->isHolder()) {
-            throw new \InvalidArgumentException('Only holders have family groups');
+            throw new InvalidAffiliateOperationException('Only holders have family groups');
         }
 
         return Affiliate::where('holder_id', $holder->id)

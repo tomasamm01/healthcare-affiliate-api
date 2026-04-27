@@ -3,6 +3,10 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Exceptions\AffiliateNotFoundException;
+use App\Exceptions\InvalidStatusTransitionException;
+use App\Exceptions\InvalidAffiliateOperationException;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,5 +25,31 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (AffiliateNotFoundException $e, Request $request) {
+            return response()->json([
+                'error' => 'affiliate_not_found',
+                'message' => $e->getMessage(),
+            ], $e->getCode());
+        });
+
+        $exceptions->render(function (InvalidStatusTransitionException $e, Request $request) {
+            return response()->json([
+                'error' => 'invalid_status_transition',
+                'message' => $e->getMessage(),
+            ], $e->getCode());
+        });
+
+        $exceptions->render(function (InvalidAffiliateOperationException $e, Request $request) {
+            return response()->json([
+                'error' => 'invalid_affiliate_operation',
+                'message' => $e->getMessage(),
+            ], $e->getCode());
+        });
+
+        $exceptions->render(function (\InvalidArgumentException $e, Request $request) {
+            return response()->json([
+                'error' => 'invalid_argument',
+                'message' => $e->getMessage(),
+            ], 422);
+        });
     })->create();

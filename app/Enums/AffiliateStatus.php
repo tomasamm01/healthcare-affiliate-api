@@ -23,4 +23,14 @@ enum AffiliateStatus: string
     {
         return $this === self::ACTIVE;
     }
+
+    public function canTransitionTo(self $status): bool
+    {
+        return match ($this) {
+            self::PENDING => $status === self::ACTIVE || $status === self::INACTIVE,
+            self::ACTIVE => $status === self::SUSPENDED || $status === self::INACTIVE,
+            self::SUSPENDED => $status === self::ACTIVE || $status === self::INACTIVE,
+            self::INACTIVE => false,
+        };
+    }
 }
